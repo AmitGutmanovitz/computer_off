@@ -10,42 +10,34 @@ python shutdown.py --dry-run
 
 This prints the command it would run (`shutdown /s /t 0` on Windows), without shutting anything down.
 
-## Windows: schedule it from PowerShell
+## Windows: schedule it with `schedule_shutdown.ps1`
 
-Windows has no cron. Task Scheduler does the same job, and you can set it up from PowerShell.
+Windows has no cron, so `schedule_shutdown.ps1` creates a Task Scheduler task instead. It finds Python and `shutdown.py` by itself, so you don't type any paths.
 
-1. Find the full path to your Python:
-
-   ```powershell
-   python -c "import sys; print(sys.executable)"
-   ```
-
-2. Create a task that runs the script every day at 23:00. Replace the two paths with yours:
-
-   ```powershell
-   $action  = New-ScheduledTaskAction -Execute "C:\Path\To\python.exe" -Argument '"C:\Path\To\computer_off\shutdown.py"'
-   $trigger = New-ScheduledTaskTrigger -Daily -At 23:00
-   Register-ScheduledTask -TaskName "ComputerOff" -Action $action -Trigger $trigger
-   ```
-
-   If you get "Access is denied", open PowerShell with **Run as administrator** and try again.
-
-3. Check that the task exists and see when it will run next:
-
-   ```powershell
-   Get-ScheduledTask -TaskName "ComputerOff" | Get-ScheduledTaskInfo
-   ```
-
-The task runs while you are logged in, which is normal for shutting down your own PC.
-
-Other schedules:
+Open PowerShell in this folder and run:
 
 ```powershell
-# Weekdays only, at 22:30
-New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 22:30
+powershell -ExecutionPolicy Bypass -File .\schedule_shutdown.ps1
 ```
 
-To change the time, run the three lines from step 2 again with `-Force` added to `Register-ScheduledTask`.
+This schedules a shutdown every **Wednesday at 23:00** and prints when it will run next. Keep `schedule_shutdown.ps1` and `shutdown.py` in the same folder. If you move them, run the script again.
+
+To use a different day or time, run it again with `-Day` and `-Time`. The new schedule replaces the old one:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\schedule_shutdown.ps1 -Day Friday -Time 22:30
+powershell -ExecutionPolicy Bypass -File .\schedule_shutdown.ps1 -Day "Monday,Wednesday"
+```
+
+- `-ExecutionPolicy Bypass` is needed because Windows blocks `.ps1` files by default. It applies to this one run only.
+- If you get "Access is denied", open PowerShell with **Run as administrator** and try again.
+- The task runs while you are logged in, which is normal for shutting down your own PC.
+
+To check the task:
+
+```powershell
+Get-ScheduledTask -TaskName "ComputerOff" | Get-ScheduledTaskInfo
+```
 
 To remove the task:
 
